@@ -55,10 +55,14 @@ app.post('/fake-api', (req, res) => {
       processedAt: new Date().toISOString()
     };
 
+    const apiKey = process.env.WEBHOOK_API_KEY; 
     try {
       const response = await fetch(callbackUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+       headers: { 
+          'Content-Type': 'application/json',
+          'X-API-Key': apiKey  //On ajoute l’API key ici
+        },
         body: JSON.stringify(payloadToSend)
       });
 
