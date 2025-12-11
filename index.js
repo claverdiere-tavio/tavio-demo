@@ -25,27 +25,35 @@ app.post('/fake-api', (req, res) => {
   const receivedAt = new Date().toISOString();
   const body = req.body || {};
 
-  // 1) Déterminer l’URL de callback (priorité au body)
+  // 1) URL du webhook
   const callbackUrl = body.callbackUrl || process.env.DEFAULT_CALLBACK_URL;
 
   if (!callbackUrl) {
     return res.status(400).json({
-      error: 'Missing callback URL. Send "callbackUrl" in JSON body or set DEFAULT_CALLBACK_URL in environment variables.'
+      error: 'Missing callback URL. Send "callbackUrl" in JSON body or set DEFAULT_CALLBACK_URL.'
     });
   }
 
-  // 2) Générer un ID de requête pour la démo
+  // 2) API key provenant du premier POST
+  const apiKey = body.apiKey;
+  if (!apiKey) {
+    return res.status(400).json({
+      error: 'Missing API key. Send "apiKey" in JSON body.'
+    });
+  }
+
+  // 3) ID de la requête
   const id = Math.random().toString(36).substring(2, 10);
 
-  // 3) Répondre tout de suite à l’appel de ton produit
+  // 4) Réponse immédiate au client
   res.json({
     status: 'accepted',
     id,
     receivedAt
   });
 
-  // 4) Après 30 secondes, envoyer le webhook vers ton application
-  const delayMs = 30_000; // 30 secondes
+  // 5) Envoi du webhook après 30 secondes
+  const delayMs = 30_000;
 
   setTimeout(async () => {
     const payloadToSend = {
@@ -55,13 +63,12 @@ app.post('/fake-api', (req, res) => {
       processedAt: new Date().toISOString()
     };
 
-    const apiKey = process.env.WEBHOOK_API_KEY; 
     try {
       const response = await fetch(callbackUrl, {
         method: 'POST',
-       headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'X-API-Key': apiKey  //On ajoute l’API key ici
+          'X-API-Key': apiKey   // 🔐 API key du premier POST !
         },
         body: JSON.stringify(payloadToSend)
       });
