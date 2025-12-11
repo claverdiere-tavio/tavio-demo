@@ -1,0 +1,16 @@
+{
+  "name": "fake-webhook-api",
+  "version": "1.0.0",
+  "description": "Fake Assessment API that waits 30s then sends a webhook callback",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
