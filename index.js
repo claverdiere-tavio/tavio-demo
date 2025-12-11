@@ -68,7 +68,7 @@ app.post('/fake-api', (req, res) => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-API-Key': apiKey   // 🔐 API key du premier POST !
+          'x-api-key': apiKey   //API key du premier POST !
         },
         body: JSON.stringify(payloadToSend)
       });
@@ -77,7 +77,7 @@ app.post('/fake-api', (req, res) => {
         `Webhook sent to ${callbackUrl} with status ${response.status}`
       );
     } catch (err) {
-      console.error('❌ Error sending webhook:', err);
+      console.error('Error sending webhook:', err);
     }
   }, delayMs);
 });
