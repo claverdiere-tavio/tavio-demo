@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>BestHire - Applicants</title>
+
+  <!-- Bootstrap 5 CSS -->
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+  >
+
+  <style>
+    body { background-color: #f5f7fb; }
+    .navbar-brand {
+      font-weight: 900;
+      font-size: 2rem;
+      letter-spacing: 0.5px;
+    }
+    .page-title { margin-top: 1.5rem; margin-bottom: 0.25rem; }
+    .page-subtitle { color: #6c757d; margin-bottom: 1.5rem; }
+
+    th.sortable { cursor: pointer; user-select: none; white-space: nowrap; }
+    th.sortable span.sort-indicator { font-size: 0.75rem; margin-left: 4px; opacity: 0.6; }
+
+    .badge-status {
+      font-weight: 500;
+      border-radius: 999px;
+      padding: 0.25rem 0.6rem;
+      font-size: 0.75rem;
+    }
+    .badge-Applied    { background:#e2e3e5; color:#495057; }
+    .badge-Screening  { background:#cfe2ff; color:#084298; }
+    .badge-Interview  { background:#fff3cd; color:#664d03; }
+    .badge-Offer      { background:#d1e7dd; color:#0f5132; }
+    .badge-Rejected   { background:#f8d7da; color:#842029; }
+
+    .http-status-ok { color:#198754; font-weight:600; }
+    .http-status-error { color:#dc3545; font-weight:600; }
+    .http-status-pending { color:#6c757d; font-style: italic; }
+
+    .log-entry { font-size:0.85rem; border-bottom:1px solid #e9ecef; padding:0.35rem 0; }
+    .log-entry:last-child { border-bottom:none; }
+    .log-header { font-weight:600; }
+  </style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="#">BestHire</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse">
+      <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-2">
+        <li class="nav-item"><a class="nav-link active" href="#">Applicants</a></li>
+        <li class="nav-item"><a class="nav-link disabled">Job Postings</a></li>
+        <li class="nav-item"><a class="nav-link disabled">Configuration</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<div class="container-fluid">
+  <h2 class="page-title">Applicants</h2>
+  <p class="page-subtitle">
+    Use this list to request online assessments or background checks for candidates.
+  </p>
+
+  <!-- TABLE CARD -->
+  <div class="card shadow-sm mb-3">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <h5 class="card-title mb-0">Applicant list</h5>
+        <span class="text-muted" id="totalCount"></span>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th class="sortable" onclick="sortTable('id')">
+                ID <span id="sort-id" class="sort-indicator"></span>
+              </th>
+              <th class="sortable" onclick="sortTable('first')">
+                First Name <span id="sort-first" class="sort-indicator"></span>
+              </th>
+              <th class="sortable" onclick="sortTable('last')">
+                Last Name <span id="sort-last" class="sort-indicator"></span>
+              </th>
+              <th class="sortable" onclick="sortTable('email')">
+                Email <span id="sort-email" class="sort-indicator"></span>
+              </th>
+              <th class="sortable" onclick="sortTable('location')">
+                Location <span id="sort-location" class="sort-indicator"></span>
+              </th>
+              <th class="sortable" onclick="sortTable('job')">
+                Job Title <span id="sort-job" class="sort-indicator"></span>
+              </th>
+              <th class="sortable" onclick="sortTable('status')">
+                Status <span id="sort-status" class="sort-indicator"></span>
+              </th>
+              <th>Action</th>
+              <th>HTTP Status</th>
+            </tr>
+          </thead>
+          <tbody id="candidateTable"></tbody>
+        </table>
+      </div>
+
+      <!-- PAGINATION -->
+      <div class="d-flex justify-content-between align-items-center mt-3">
+        <div id="pageInfo" class="text-muted"></div>
+        <nav><ul class="pagination pagination-sm mb-0" id="paginationControls"></ul></nav>
+      </div>
+    </div>
+  </div>
+
+  <!-- LOGS CARD -->
+  <div class="card shadow-sm mb-4">
+    <div class="card-body">
+      <h5 class="card-title mb-2">API Activity</h5>
+      <p class="text-muted mb-2">Latest assessment and background check requests.</p>
+      <div id="logContainer"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+/* ----------------------------------
+   CONFIG
+---------------------------------- */
+// Base URL of your fake API service (Render)
+const SERVICE_BASE_URL = "https://your-render-service.onrender.com";
+
+// Two distinct endpoints (as per your choice A)
+const ASSESSMENT_API_ENDPOINT      = SERVICE_BASE_URL + "/fake-api/assessment";
+const BACKGROUND_API_ENDPOINT      = SERVICE_BASE_URL + "/fake-api/background-check";
+
+const API_KEY      = "MY-DEMO-API-12345";
+const CALLBACK_URL = "https://yourapp.com/inbound-webhook";
+
+/* ----------------------------------
+   UNIQUE CANDIDATE GENERATION
+---------------------------------- */
+const statuses = ["Applied","Screening","Interview","Offer","Rejected"];
+const firstNames = ["Marie","Emily","Carlos","Sofia","Alex","Marc","Linda","John","Ana","Victor","Julia","Sam","Nora","Lucas","Emma"];
+const lastNames  = ["Tremblay","Johnson","Martinez","Torres","Gagnon","Dubois","Carter","Brown","Lopez","Fischer","Morin","Lavoie","Rogers","Smith","Moreau"];
+const locations  = [
+  "Québec, Canada","Ontario, Canada","Alberta, Canada",
+  "California, USA","Texas, USA","Florida, USA",
+  "Madrid, Spain","Barcelona, Spain",
+  "Île-de-France, France","Lyon, France",
+  "Jalisco, Mexico","Nuevo León, Mexico",
+  "London, UK","Manchester, UK"
+];
+const jobs = [
+  "Customer Support Specialist","Warehouse Coordinator","Software QA Tester",
+  "Network Technician","Sales Advisor","Billing Specialist",
+  "Logistics Supervisor","Finance Assistant","HR Generalist",
+  "IT Support Analyst","Project Coordinator","Recruiting Assistant"
+];
+
+// Generate 30 unique candidates
+const candidates = [];
+for (let i = 0; i < 30; i++) {
+  const id = "C" + (i + 1).toString().padStart(3, "0");
+  candidates.push({
+    id,
+    first:    firstNames[i % firstNames.length],
+    last:     lastNames[i % lastNames.length],
+    email:    `${firstNames[i % firstNames.length].toLowerCase()}.${lastNames[i % lastNames.length].toLowerCase()}${i}@example.com`,
+    location: locations[i % locations.length],
+    job:      jobs[i % jobs.length],
+    status:   statuses[i % statuses.length]
+  });
+}
+
+/* ----------------------------------
+   TABLE + PAGINATION + SORTING
+---------------------------------- */
+let currentPage   = 1;
+const pageSize    = 10;
+let sortField     = "id";
+let sortDirection = 1;
+
+function renderTable() {
+  const table = document.getElementById("candidateTable");
+  table.innerHTML = "";
+
+  // Sort
+  candidates.sort((a,b)=>{
+    const v1 = a[sortField].toString().toLowerCase();
+    const v2 = b[sortField].toString().toLowerCase();
+    if (v1 < v2) return -1 * sortDirection;
+    if (v1 > v2) return  1 * sortDirection;
+    return 0;
+  });
+
+  const start    = (currentPage - 1) * pageSize;
+  const pageData = candidates.slice(start, start + pageSize);
+
+  pageData.forEach(c => {
+    const row = document.createElement("tr");
+
+    // Action cell content based on status
+    let actionHtml = "";
+    if (c.status === "Screening" || c.status === "Interview") {
+      actionHtml = `
+        <button class="btn btn-sm btn-primary"
+                onclick="requestAssessment('${c.id}')">
+          Request assessment
+        </button>`;
+    } else if (c.status === "Offer") {
+      actionHtml = `
+        <button class="btn btn-sm btn-warning"
+                onclick="requestBackgroundCheck('${c.id}')">
+          Request Background Check
+        </button>`;
+    }
+
+    row.innerHTML = `
+      <td>${c.id}</td>
+      <td>${c.first}</td>
+      <td>${c.last}</td>
+      <td>${c.email}</td>
+      <td>${c.location}</td>
+      <td>${c.job}</td>
+      <td><span class="badge badge-status badge-${c.status}">${c.status}</span></td>
+      <td>${actionHtml}</td>
+      <td id="status-${c.id}" class="http-status-pending">—</td>
+    `;
+    table.appendChild(row);
+  });
+
+  document.getElementById("totalCount").innerText =
+    candidates.length + " candidates";
+
+  renderPagination();
+  updateSortIndicators();
+
+  document.getElementById("pageInfo").innerText =
+    `Showing ${start+1}–${Math.min(start+pageSize,candidates.length)} of ${candidates.length}`;
+}
+
+/* ----------------------------------
+   PAGINATION (max 5 pages visible)
+---------------------------------- */
+function renderPagination() {
+  const totalPages = Math.ceil(candidates.length / pageSize);
+  const ul = document.getElementById("paginationControls");
+  ul.innerHTML = "";
+
+  // Previous
+  const prevLi = document.createElement("li");
+  prevLi.className = "page-item" + (currentPage === 1 ? " disabled" : "");
+  prevLi.innerHTML = `
+    <button class="page-link" onclick="changePage(${currentPage-1})">Previous</button>
+  `;
+  ul.appendChild(prevLi);
+
+  // window of pages
+  const maxVisible = 5;
+  let start = Math.max(1, currentPage - 2);
+  let end   = Math.min(totalPages, start + maxVisible - 1);
+  if (end - start < maxVisible - 1) {
+    start = Math.max(1, end - maxVisible + 1);
+  }
+
+  for (let p = start; p <= end; p++) {
+    const li = document.createElement("li");
+    li.className = "page-item" + (p === currentPage ? " active" : "");
+    li.innerHTML = `
+      <button class="page-link" onclick="changePage(${p})">${p}</button>
+    `;
+    ul.appendChild(li);
+  }
+
+  // Next
+  const nextLi = document.createElement("li");
+  nextLi.className = "page-item" + (currentPage === totalPages ? " disabled" : "");
+  nextLi.innerHTML = `
+    <button class="page-link" onclick="changePage(${currentPage+1})">Next</button>
+  `;
+  ul.appendChild(nextLi);
+}
+
+function changePage(p) {
+  const totalPages = Math.ceil(candidates.length / pageSize);
+  if (p < 1 || p > totalPages) return;
+  currentPage = p;
+  renderTable();
+}
+
+/* ----------------------------------
+   SORTING
+---------------------------------- */
+function sortTable(field) {
+  if (sortField === field) sortDirection *= -1;
+  else { sortField = field; sortDirection = 1; }
+  renderTable();
+}
+
+function updateSortIndicators() {
+  const fields = ["id","first","last","email","location","job","status"];
+  fields.forEach(f => {
+    const span = document.getElementById("sort-"+f);
+    if (!span) return;
+    span.textContent = (f === sortField)
+      ? (sortDirection === 1 ? "▲" : "▼")
+      : "";
+  });
+}
+
+/* ----------------------------------
+   LOGGING
+---------------------------------- */
+function addLog(candidate, status, error = null, actionLabel = "Request assessment") {
+  const container = document.getElementById("logContainer");
+  const div       = document.createElement("div");
+  div.className   = "log-entry";
+  const ts        = new Date().toLocaleTimeString();
+
+  if (error) {
+    div.innerHTML = `
+      <div class="log-header">[${ts}] Error for ${candidate.id}</div>
+      <div>Action: ${actionLabel}</div>
+      <div>HTTP Status: <span class="text-danger">ERR</span></div>
+      <div class="text-muted">Details: ${error}</div>
+    `;
+  } else {
+    const color = status >= 200 && status < 300 ? "text-success" : "text-danger";
+    div.innerHTML = `
+      <div class="log-header">[${ts}] ${actionLabel} sent for ${candidate.id}</div>
+      <div>HTTP Status: <span class="${color}">${status}</span></div>
+      <div class="text-muted">
+        Assessment API: ${ASSESSMENT_API_ENDPOINT}<br/>
+        Background API: ${BACKGROUND_API_ENDPOINT}<br/>
+        Callback: ${CALLBACK_URL}
+      </div>
+    `;
+  }
+
+  container.prepend(div);
+}
+
+/* ----------------------------------
+   API CALLS
+---------------------------------- */
+
+// Assessment: only for Screening & Interview
+function requestAssessment(id) {
+  const c = candidates.find(x => x.id === id);
+  if (!c) return;
+
+  const statusCell = document.getElementById("status-" + id);
+  statusCell.textContent = "...";
+  statusCell.className   = "http-status-pending";
+
+  const payload = {
+    type: "Assessment",
+    callbackUrl: CALLBACK_URL,
+    apiKey: API_KEY,
+    assessmentType: "Cognitive+Personality",
+    candidate: {
+      id: c.id,
+      firstName: c.first,
+      lastName: c.last,
+      email: c.email
+    },
+    job: {
+      title: c.job,
+      location: c.location
+    },
+    requestedAt: new Date().toISOString()
+  };
+
+  fetch(ASSESSMENT_API_ENDPOINT, {
+    method: "POST",
+    headers: { "Content-Type":"application/json" },
+    body: JSON.stringify(payload)
+  })
+  .then(res => {
+    const status = res.status;
+    statusCell.textContent = status;
+    statusCell.className   = status >= 200 && status < 300
+      ? "http-status-ok"
+      : "http-status-error";
+    addLog(c, status, null, "Request assessment");
+    return res.json().catch(()=>{});
+  })
+  .catch(err => {
+    statusCell.textContent = "ERR";
+    statusCell.className   = "http-status-error";
+    addLog(c, null, err.message || "Network error", "Request assessment");
+  });
+}
+
+// Background check: only for Offer
+function requestBackgroundCheck(id) {
+  const c = candidates.find(x => x.id === id);
+  if (!c) return;
+
+  const statusCell = document.getElementById("status-" + id);
+  statusCell.textContent = "...";
+  statusCell.className   = "http-status-pending";
+
+  const payload = {
+    type: "BackgroundCheck",
+    apiKey: API_KEY,
+    callbackUrl: CALLBACK_URL + "/background",
+    vendor: "CheckrFake",
+    candidate: {
+      id: c.id,
+      firstName: c.first,
+      lastName: c.last,
+      email: c.email
+    },
+    job: {
+      title: c.job,
+      location: c.location
+    },
+    requestedAt: new Date().toISOString()
+  };
+
+  fetch(BACKGROUND_API_ENDPOINT, {
+    method: "POST",
+    headers: { "Content-Type":"application/json" },
+    body: JSON.stringify(payload)
+  })
+  .then(res => {
+    const status = res.status;
+    statusCell.textContent = status;
+    statusCell.className   = status >= 200 && status < 300
+      ? "http-status-ok"
+      : "http-status-error";
+    addLog(c, status, null, "Request Background Check");
+    return res.json().catch(()=>{});
+  })
+  .catch(err => {
+    statusCell.textContent = "ERR";
+    statusCell.className   = "http-status-error";
+    addLog(c, null, err.message || "Network error", "Request Background Check");
+  });
+}
+
+/* ----------------------------------
+   INIT
+---------------------------------- */
+renderTable();
+</script>
+</body>
+</html>
