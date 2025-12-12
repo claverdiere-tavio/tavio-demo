@@ -372,7 +372,11 @@ function requestAssessment(id) {
 
   fetch(ASSESSMENT_API_ENDPOINT, {
     method: "POST",
-    headers: { "Content-Type":"application/json" },
+    headers: { 
+        "Content-Type":"application/json",
+        "x-api-key": apiKey  //API key ici
+    },
+
     body: JSON.stringify(payload)
   })
   .then(res => {
@@ -416,7 +420,10 @@ function requestBackgroundCheck(id) {
 
   fetch(BACKGROUND_API_ENDPOINT, {
     method: "POST",
-    headers: { "Content-Type":"application/json" },
+    headers: { 
+        "Content-Type":"application/json",
+        "x-api-key": apiKey  //API key ici
+    },
     body: JSON.stringify(payload)
   })
   .then(res => {
@@ -439,4 +446,5 @@ renderTable();
 </script>
 </body>
 </html>
+
 
