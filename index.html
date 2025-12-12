@@ -135,20 +135,17 @@
 /* ----------------------------------
    CONFIG
 ---------------------------------- */
-// Base URL of your fake API service (Render)
-const SERVICE_BASE_URL = "https://your-render-service.onrender.com";
 
-// Two distinct endpoints (as per your choice A)
-const ASSESSMENT_API_ENDPOINT      = SERVICE_BASE_URL + "/fake-api/assessment";
-const BACKGROUND_API_ENDPOINT      = SERVICE_BASE_URL + "/fake-api/background-check";
+// Endpoints for sending requests
+const ASSESSMENT_API_ENDPOINT = "https://ukgdemo.us1.thecloudconnectors.io/ukg-demo---dev-dev/assessment_results"
+const BACKGROUND_API_ENDPOINT = "https://ukgdemo.us1.thecloudconnectors.io/ukg-demo---dev-dev/background_results"
 
-const API_KEY      = "MY-DEMO-API-12345";
-const CALLBACK_URL = "https://yourapp.com/inbound-webhook";
-
+const API_KEY = "ZTQyY2ZjMGQtMGY1MC00ZWY3LWE4NzktYzg5OWU2ZGRmNjkwOjAyODAwNzRiLWIyYzMtNGJkZC04MTM2LTMwYjM3M2JhNjUxMw==";
+  
 /* ----------------------------------
    UNIQUE CANDIDATE GENERATION
 ---------------------------------- */
-const statuses = ["Applied","Screening","Interview","Offer","Rejected"];
+const statuses  = ["Applied","Screening","Interview","Offer","Rejected"];
 const firstNames = ["Marie","Emily","Carlos","Sofia","Alex","Marc","Linda","John","Ana","Victor","Julia","Sam","Nora","Lucas","Emma"];
 const lastNames  = ["Tremblay","Johnson","Martinez","Torres","Gagnon","Dubois","Carter","Brown","Lopez","Fischer","Morin","Lavoie","Rogers","Smith","Moreau"];
 const locations  = [
@@ -259,12 +256,9 @@ function renderPagination() {
   // Previous
   const prevLi = document.createElement("li");
   prevLi.className = "page-item" + (currentPage === 1 ? " disabled" : "");
-  prevLi.innerHTML = `
-    <button class="page-link" onclick="changePage(${currentPage-1})">Previous</button>
-  `;
+  prevLi.innerHTML = `<button class="page-link" onclick="changePage(${currentPage-1})">Previous</button>`;
   ul.appendChild(prevLi);
 
-  // window of pages
   const maxVisible = 5;
   let start = Math.max(1, currentPage - 2);
   let end   = Math.min(totalPages, start + maxVisible - 1);
@@ -274,19 +268,15 @@ function renderPagination() {
 
   for (let p = start; p <= end; p++) {
     const li = document.createElement("li");
-    li.className = "page-item" + (p === currentPage ? " active" : "");
-    li.innerHTML = `
-      <button class="page-link" onclick="changePage(${p})">${p}</button>
-    `;
+    li.className = "page-item" + (p===currentPage ? " active" : "");
+    li.innerHTML = `<button class="page-link" onclick="changePage(${p})">${p}</button>`;
     ul.appendChild(li);
   }
 
   // Next
   const nextLi = document.createElement("li");
   nextLi.className = "page-item" + (currentPage === totalPages ? " disabled" : "");
-  nextLi.innerHTML = `
-    <button class="page-link" onclick="changePage(${currentPage+1})">Next</button>
-  `;
+  nextLi.innerHTML = `<button class="page-link" onclick="changePage(${currentPage+1})">Next</button>`;
   ul.appendChild(nextLi);
 }
 
@@ -320,7 +310,7 @@ function updateSortIndicators() {
 /* ----------------------------------
    LOGGING
 ---------------------------------- */
-function addLog(candidate, status, error = null, actionLabel = "Request assessment") {
+function addLog(candidate, status, error = null, actionLabel) {
   const container = document.getElementById("logContainer");
   const div       = document.createElement("div");
   div.className   = "log-entry";
@@ -328,20 +318,22 @@ function addLog(candidate, status, error = null, actionLabel = "Request assessme
 
   if (error) {
     div.innerHTML = `
-      <div class="log-header">[${ts}] Error for ${candidate.id}</div>
+      <div class="log-header">[${ts}] ERROR for ${candidate.id}</div>
       <div>Action: ${actionLabel}</div>
-      <div>HTTP Status: <span class="text-danger">ERR</span></div>
+      <div>Status: <span class="text-danger">ERR</span></div>
       <div class="text-muted">Details: ${error}</div>
     `;
   } else {
     const color = status >= 200 && status < 300 ? "text-success" : "text-danger";
+    const endpoint = actionLabel.includes("Background")
+      ? BACKGROUND_API_ENDPOINT
+      : ASSESSMENT_API_ENDPOINT;
+
     div.innerHTML = `
       <div class="log-header">[${ts}] ${actionLabel} sent for ${candidate.id}</div>
-      <div>HTTP Status: <span class="${color}">${status}</span></div>
+      <div>Status: <span class="${color}">${status}</span></div>
       <div class="text-muted">
-        Assessment API: ${ASSESSMENT_API_ENDPOINT}<br/>
-        Background API: ${BACKGROUND_API_ENDPOINT}<br/>
-        Callback: ${CALLBACK_URL}
+        Endpoint: ${endpoint}
       </div>
     `;
   }
@@ -350,10 +342,10 @@ function addLog(candidate, status, error = null, actionLabel = "Request assessme
 }
 
 /* ----------------------------------
-   API CALLS
+   API CALLS (SEPARATE ENDPOINTS, NO CALLBACKS)
 ---------------------------------- */
 
-// Assessment: only for Screening & Interview
+// ASSESSMENT REQUEST (Screening + Interview)
 function requestAssessment(id) {
   const c = candidates.find(x => x.id === id);
   if (!c) return;
@@ -363,10 +355,8 @@ function requestAssessment(id) {
   statusCell.className   = "http-status-pending";
 
   const payload = {
-    type: "Assessment",
-    callbackUrl: CALLBACK_URL,
+    type: "AssessmentRequest",
     apiKey: API_KEY,
-    assessmentType: "Cognitive+Personality",
     candidate: {
       id: c.id,
       firstName: c.first,
@@ -386,22 +376,19 @@ function requestAssessment(id) {
     body: JSON.stringify(payload)
   })
   .then(res => {
-    const status = res.status;
-    statusCell.textContent = status;
-    statusCell.className   = status >= 200 && status < 300
-      ? "http-status-ok"
-      : "http-status-error";
-    addLog(c, status, null, "Request assessment");
+    statusCell.textContent = res.status;
+    statusCell.className   = res.status>=200 && res.status<300 ? "http-status-ok" : "http-status-error";
+    addLog(c, res.status, null, "Assessment Request");
     return res.json().catch(()=>{});
   })
   .catch(err => {
     statusCell.textContent = "ERR";
     statusCell.className   = "http-status-error";
-    addLog(c, null, err.message || "Network error", "Request assessment");
+    addLog(c, null, err.message || "Network error", "Assessment Request");
   });
 }
 
-// Background check: only for Offer
+// BACKGROUND CHECK REQUEST (Offer)
 function requestBackgroundCheck(id) {
   const c = candidates.find(x => x.id === id);
   if (!c) return;
@@ -411,9 +398,8 @@ function requestBackgroundCheck(id) {
   statusCell.className   = "http-status-pending";
 
   const payload = {
-    type: "BackgroundCheck",
+    type: "BackgroundCheckRequest",
     apiKey: API_KEY,
-    callbackUrl: CALLBACK_URL + "/background",
     vendor: "CheckrFake",
     candidate: {
       id: c.id,
@@ -434,18 +420,15 @@ function requestBackgroundCheck(id) {
     body: JSON.stringify(payload)
   })
   .then(res => {
-    const status = res.status;
-    statusCell.textContent = status;
-    statusCell.className   = status >= 200 && status < 300
-      ? "http-status-ok"
-      : "http-status-error";
-    addLog(c, status, null, "Request Background Check");
+    statusCell.textContent = res.status;
+    statusCell.className   = res.status>=200 && res.status<300 ? "http-status-ok" : "http-status-error";
+    addLog(c, res.status, null, "Background Check Request");
     return res.json().catch(()=>{});
   })
   .catch(err => {
     statusCell.textContent = "ERR";
     statusCell.className   = "http-status-error";
-    addLog(c, null, err.message || "Network error", "Request Background Check");
+    addLog(c, null, err.message || "Network error", "Background Check Request");
   });
 }
 
