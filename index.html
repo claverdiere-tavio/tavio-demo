@@ -355,20 +355,106 @@ function requestAssessment(id) {
   statusCell.className   = "http-status-pending";
 
   const payload = {
-    type: "AssessmentRequest",
-    apiKey: API_KEY,
-    candidate: {
-      id: c.id,
-      firstName: c.first,
-      lastName: c.last,
-      email: c.email
+
+  "type": "AssessmentRequest",
+  "apiKey": API_KEY,
+  "requestedAt": new Date().toISOString(),
+
+  "requestId": "REQ-20251209-874321",
+  "sourceSystem": "BestHire`",
+  "vendorSystem": "Talento",
+
+  "candidate": {
+
+    "id": c.id,
+    "firstName": c.first,
+    "lastName": c.last,
+    "email": c.email,
+    "phone": "+1-514-222-9988",
+    "country": "Canada",
+    "city": "Montreal",
+    "postalCode": "H3B 1X8",
+    "preferredLanguage": "en",
+    "contactMethods": [
+      { "type": "email", "value": "sophie.martinez@example.com" },
+      { "type": "sms", "value": "+15142229988" }
+    ]
+  },
+
+  "job": {
+    "jobId": "JOB-002147",
+    "jobCode": "SR-DEV-2025",
+    "title": c.job,
+    "location": c.location,
+    "employmentType": "full-time",
+    "requisitionMetadata": {
+      "jobLevel": "Senior"
+    }
+  },
+
+  "application": {
+    "applicationId": "APP-778920",
+    "status": "Assessment Pending",
+    "submittedDate": "2025-12-08T09:15:00Z",
+    "currentStage": "Assessment",
+    "referralSource": "LinkedIn",
+    "answers": [
+      {
+        "questionId": "Q-101",
+        "questionText": "Do you have experience with TypeScript?",
+        "answerValue": "Yes, 3 years",
+        "dataType": "string"
+      },
+      {
+        "questionId": "Q-205",
+        "questionText": "What is your expected salary range?",
+        "answerValue": 115000,
+        "dataType": "number"
+      },
+      {
+        "questionId": "Q-333",
+        "questionText": "Are you legally authorized to work in Canada?",
+        "answerValue": true,
+        "dataType": "boolean"
+      }
+    ]
+  },
+
+  "attachments": [
+    {
+      "type": "resume",
+      "fileName": "SophieMartinez_Resume.pdf",
+      "mimeType": "application/pdf",
+      "contentBase64": "JVBERi0xLjQKJYGBgYEKCjEgMCBvYmoKPDwv..."
     },
-    job: {
-      title: c.job,
-      location: c.location
-    },
-    requestedAt: new Date().toISOString()
-  };
+    {
+      "type": "coverLetter",
+      "fileName": "SophieMartinez_CoverLetter.pdf",
+      "mimeType": "application/pdf",
+      "url": "https://files.example.com/coverletters/APP-778920.pdf"
+    }
+  ],
+
+  "assessment": {
+    "assessmentId": "ACME-CODING-SUITE-01",
+    "assessmentType": "technical-coding",
+    "deliveryMethod": "email",
+    "configuration": {
+      "bundle": ["coding-test", "problem-solving-test"],
+      "timeLimitMinutes": 120,
+      "candidateInstructions": "Please complete within 48 hours.",
+      "difficulty": "advanced"
+    }
+  },
+
+  "customFields": {
+    "customerId": "ENTERPRISE-4455",
+    "integrationMode": "production",
+    "pipelineName": "Experienced Engineering Candidates",
+    "tags": ["coding", "software", "assessment"]
+  }
+}
+;
 
   fetch(ASSESSMENT_API_ENDPOINT, {
     method: "POST",
@@ -446,6 +532,7 @@ renderTable();
 </script>
 </body>
 </html>
+
 
 
 
