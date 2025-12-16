@@ -310,36 +310,45 @@ function updateSortIndicators() {
 /* ----------------------------------
    LOGGING
 ---------------------------------- */
-function addLog(candidate, status, error = null, actionLabel) {
+function addLog({ candidate, actionLabel, endpoint, payload, headers, status, error }) {
   const container = document.getElementById("logContainer");
-  const div       = document.createElement("div");
-  div.className   = "log-entry";
-  const ts        = new Date().toLocaleTimeString();
+  const div = document.createElement("div");
+  div.className = "log-entry";
+  const ts = new Date().toLocaleTimeString();
 
-  if (error) {
-    div.innerHTML = `
-      <div class="log-header">[${ts}] ERROR for ${candidate.id}</div>
-      <div>Action: ${actionLabel}</div>
-      <div>Status: <span class="text-danger">ERR</span></div>
-      <div class="text-muted">Details: ${error}</div>
-    `;
-  } else {
-    const color = status >= 200 && status < 300 ? "text-success" : "text-danger";
-    const endpoint = actionLabel.includes("Background")
-      ? BACKGROUND_API_ENDPOINT
-      : ASSESSMENT_API_ENDPOINT;
+  const statusColor =
+    status && status >= 200 && status < 300
+      ? "text-success"
+      : "text-danger";
 
-    div.innerHTML = `
-      <div class="log-header">[${ts}] ${actionLabel} sent for ${candidate.id}</div>
-      <div>Status: <span class="${color}">${status}</span></div>
-      <div class="text-muted">
-        Endpoint: ${endpoint}
+  div.innerHTML = `
+    <div class="log-header">[${ts}] ${actionLabel} – ${candidate.id}</div>
+
+    <div><strong>Endpoint:</strong> ${endpoint}</div>
+    <div><strong>Status:</strong>
+      <span class="${statusColor}">
+        ${status ?? "ERR"}
+      </span>
+    </div>
+
+    <details class="mt-2">
+      <summary style="cursor:pointer;">View full request</summary>
+
+      <div class="mt-2">
+        <strong>Headers</strong>
+        <pre class="bg-light p-2 border rounded small">${JSON.stringify(headers, null, 2)}</pre>
+
+        <strong>Payload</strong>
+        <pre class="bg-light p-2 border rounded small">${JSON.stringify(payload, null, 2)}</pre>
       </div>
-    `;
-  }
+    </details>
+
+    ${error ? `<div class="text-danger mt-1">Error: ${error}</div>` : ""}
+  `;
 
   container.prepend(div);
 }
+
 
 /* ----------------------------------
    API CALLS (SEPARATE ENDPOINTS, NO CALLBACKS)
@@ -532,6 +541,7 @@ renderTable();
 </script>
 </body>
 </html>
+
 
 
 
