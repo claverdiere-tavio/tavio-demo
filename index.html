@@ -460,7 +460,7 @@ function requestAssessment(id) {
     method: "POST",
     headers: { 
         "Content-Type":"application/json"
-        //"x-api-key": API_KEY  //API key ici
+        "x-api-key": API_KEY  //API key ici
     },
 
     body: JSON.stringify(payload)
@@ -532,6 +532,7 @@ renderTable();
 </script>
 </body>
 </html>
+
 
 
 
