@@ -459,8 +459,7 @@ function requestAssessment(id) {
   fetch(ASSESSMENT_API_ENDPOINT, {
     method: "POST",
     headers: { 
-        "Content-Type":"application/json",
-        "x-api-key": API_KEY  //API key ici
+        "Content-Type":"application/json"
     },
 
     body: JSON.stringify(payload)
@@ -532,6 +531,7 @@ renderTable();
 </script>
 </body>
 </html>
+
 
 
 
