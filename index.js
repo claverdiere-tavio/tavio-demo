@@ -3,78 +3,107 @@ import express from 'express';
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Pour lire du JSON dans le body
 app.use(express.json());
 
-// Petit endpoint de test
 app.get('/', (req, res) => {
   res.send('Fake webhook API is running ✅');
 });
 
 /**
- * Endpoint appelé par ta démo
- * POST /fake-api
- *
- * Body attendu (JSON) :
- * {
- *   "callbackUrl": "https://ton-app.com/webhook", // optionnel si tu mets une URL par défaut dans Render
- *   ... tout autre champ que tu veux
- * }
+ * POST /fake-api/:type
+ * type = ass | bcg
  */
-app.post('/fake-api', (req, res) => {
+app.post('/fake-api/:type', (req, res) => {
+  const { type } = req.params;
   const receivedAt = new Date().toISOString();
   const body = req.body || {};
 
-  // 1) URL du webhook
-  const callbackUrl = body.callbackUrl || process.env.DEFAULT_CALLBACK_URL;
-
-  if (!callbackUrl) {
+  if (!['ass', 'bcg'].includes(type)) {
     return res.status(400).json({
-      error: 'Missing callback URL. Send "callbackUrl" in JSON body or set DEFAULT_CALLBACK_URL.'
+      error: 'Invalid type. Supported values: ass | bcg'
     });
   }
 
-  // 2) API key provenant du premier POST
+  // Callback URL
+  const callbackUrl = body.callbackUrl || process.env.DEFAULT_CALLBACK_URL;
+  if (!callbackUrl) {
+    return res.status(400).json({
+      error: 'Missing callback URL.'
+    });
+  }
+
+  // API key (passed through)
   const apiKey = body.apiKey;
   if (!apiKey) {
     return res.status(400).json({
-      error: 'Missing API key. Send "apiKey" in JSON body.'
+      error: 'Missing API key.'
     });
   }
 
-  // 3) ID de la requête
   const id = Math.random().toString(36).substring(2, 10);
 
-  // 4) Réponse immédiate au client
+  // Immediate response
   res.json({
     status: 'accepted',
     id,
+    type,
     receivedAt
   });
 
-  // 5) Envoi du webhook après 30 secondes
   const delayMs = 30_000;
 
   setTimeout(async () => {
-    const payloadToSend = {
-      eventType: 'demo.webhook',
-      id,
-      originalPayload: body,
-      processedAt: new Date().toISOString()
-    };
+    let payloadToSend;
+
+    if (type === 'ass') {
+      payloadToSend = {
+        eventType: 'assessment.completed',
+        assessment: {
+          assessmentId: id,
+          candidateId: body.candidateId || 'CAND-12345',
+          status: 'completed',
+          overallScore: 82,
+          percentile: 76,
+          results: [
+            { competency: 'Problem Solving', score: 85 },
+            { competency: 'Communication', score: 78 },
+            { competency: 'Culture Fit', score: 90 }
+          ],
+          completedAt: new Date().toISOString()
+        }
+      };
+    }
+
+    if (type === 'bcg') {
+      payloadToSend = {
+        eventType: 'background_check.completed',
+        backgroundCheck: {
+          checkId: id,
+          candidateId: body.candidateId || 'CAND-12345',
+          status: 'clear',
+          adjudication: 'eligible',
+          checks: {
+            criminal: 'clear',
+            employment: 'verified',
+            education: 'verified'
+          },
+          completedAt: new Date().toISOString()
+        }
+      };
+    }
 
     try {
       const response = await fetch(callbackUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-api-key': apiKey   //API key du premier POST !
+          'x-api-key': apiKey
         },
         body: JSON.stringify(payloadToSend)
       });
 
       console.log(
-        `Webhook sent to ${callbackUrl} with status ${response.status}`
+        `[${type}] Webhook sent to ${callbackUrl} with status ${response.status}`
       );
     } catch (err) {
       console.error('Error sending webhook:', err);
@@ -82,7 +111,7 @@ app.post('/fake-api', (req, res) => {
   }, delayMs);
 });
 
-// Démarrage du serveur
 app.listen(port, () => {
   console.log(`Fake webhook API listening on port ${port}`);
 });
+
