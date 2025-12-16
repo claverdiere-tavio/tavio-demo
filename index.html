@@ -460,7 +460,7 @@ function requestAssessment(id) {
     method: "POST",
     headers: { 
         "Content-Type":"application/json"
-        "x-api-key": API_KEY  //API key ici
+        //"x-api-key": API_KEY  //API key ici
     },
 
     body: JSON.stringify(payload)
@@ -472,7 +472,7 @@ function requestAssessment(id) {
     return res.json().catch(()=>{});
   })
   .catch(err => {
-    statusCell.textContent = "ERROR";
+    statusCell.textContent = "ERR";
     statusCell.className   = "http-status-error";
     addLog(c, null, err.message || "Network error", "Assessment Request");
   });
@@ -532,8 +532,6 @@ renderTable();
 </script>
 </body>
 </html>
-
-
 
 
 
