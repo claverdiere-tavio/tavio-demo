@@ -472,7 +472,7 @@ function requestAssessment(id) {
     return res.json().catch(()=>{});
   })
   .catch(err => {
-    statusCell.textContent = "ERR:" + API_KEY;
+    statusCell.textContent = "ERROR";
     statusCell.className   = "http-status-error";
     addLog(c, null, err.message || "Network error", "Assessment Request");
   });
