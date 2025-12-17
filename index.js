@@ -61,6 +61,7 @@ app.post('/fake-api/:type', (req, res) => {
         assessment: {
           assessmentId: id,
           candidateId: body.candidateId || 'CAND-12345',
+          jobId: "JOB-002147",
           status: 'completed',
           overallScore: 82,
           percentile: 76,
@@ -80,6 +81,7 @@ app.post('/fake-api/:type', (req, res) => {
         backgroundCheck: {
           checkId: id,
           candidateId: body.candidateId || 'CAND-12345',
+          jobId: "JOB-002147",
           status: 'clear',
           adjudication: 'eligible',
           checks: {
